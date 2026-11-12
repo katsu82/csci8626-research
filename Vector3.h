@@ -10,7 +10,9 @@ struct Vector3{
     Vector3& operator+=(const Vector3& rhs);
 
     Vector3& operator-=(const Vector3& rhs);
-     Vector3& operator*=(const float rhs);
+    Vector3& operator*=(const float rhs);
+
+    bool operator!=(const Vector3& rhs)const;
 
     float dot(const Vector3& rhs);
 
@@ -20,6 +22,8 @@ struct Vector3{
 
     Vector3 normalize();
 };
+
+
 
  Vector3 &operator+( Vector3 lhs, const Vector3& rhs);
 

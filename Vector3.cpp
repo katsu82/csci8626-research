@@ -24,6 +24,11 @@
       return *this;
     }
 
+    bool Vector3::operator!=(const Vector3& rhs)const
+    {
+      return x != rhs.x || y != rhs.y || z != rhs.z;
+    }
+
     float Vector3::dot(const Vector3& rhs){
       return x * rhs.x + y * rhs.y + z * rhs.z;
 

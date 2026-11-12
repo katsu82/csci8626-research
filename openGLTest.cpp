@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "particle.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -15,34 +16,55 @@ const unsigned int SCR_HEIGHT = 600;
 unsigned int shaderProgram;
 unsigned int VBO, VAO, EBO;//Array objectsVAO;
 
-std::vector<Particle> particles;
-
 const char *vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"
+"uniform mat4 M;\n"
 "uniform mat4 V;\n"
 "uniform mat4 P;\n"
 "void main()\n"
 "{\n"
-"	gl_Position = P * V * vec4(aPos, 1.0);\n"
+"	gl_Position = P * V * M * vec4(aPos, 1.0);\n"
 "}\0";
 
 const char *fragmentShaderSource = "#version 330 core\n"
 "out vec4 FragColor;\n"
+"uniform vec4 color;\n"
 "void main()\n"
 "{\n"
-"	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+"	FragColor = color;\n"
 "}\n\0";
 
 GLFWwindow* window;
+glm::mat4 projection;
+glm::mat4 view;
+glm::mat4 model;
+std::vector<Particle> particles;
 
 void initializeParticles()
 {
 	for(int i = 0; i < 30; i++)
 	{
-		float randomPos = (10 * (float) rand() / (RAND_MAX + 1)) + -5;
+		float randomPos1 = (10 * (float) rand() / (RAND_MAX + 1)) + -5;
+		float randomPos2 = (10 * (float) rand() / (RAND_MAX + 1)) + -5;
+		float randomPos3 = (10 * (float) rand() / (RAND_MAX + 1)) + -5;
+		Vector3 pos = Vector3{randomPos1, randomPos2, randomPos3};
 
-		Vector3 pos = Vector3{};
-		//particles.emplace_back()
+		float randomScale1 = (3 * (float) rand() / (RAND_MAX + 1)) + 0;
+		float randomScale2 = (3 * (float) rand() / (RAND_MAX + 1)) + 0;
+		float randomScale3 = (3 * (float) rand() / (RAND_MAX + 1)) + 0;
+		Vector3 sc = Vector3{randomScale1, randomScale2, randomScale3};
+
+		float randomOrient1 = (6.28 * (float) rand() / (RAND_MAX + 1)) + -3.14;
+		float randomOrient2 = (6.28 * (float) rand() / (RAND_MAX + 1)) + -3.14;
+		float randomOrient3 = (6.28 * (float) rand() / (RAND_MAX + 1)) + -3.14;
+		Vector3 orient = Vector3{randomOrient1, randomOrient2, randomOrient3};
+
+		float randomColorR = (1 * (float) rand() / (RAND_MAX + 1)) + 0;
+		float randomColorG = (1 * (float) rand() / (RAND_MAX + 1)) + 0;
+		float randomColorB = (1 * (float) rand() / (RAND_MAX + 1)) + 0;
+		float randomColorA = (1 * (float) rand() / (RAND_MAX + 1)) + 0;
+		glm::vec4 col = glm::vec4(randomColorR, randomColorG, randomColorB, randomColorA);
+		particles.emplace_back(pos, sc, orient, col);
 	}
 }
 
@@ -69,6 +91,10 @@ bool initialize()
 		glfwTerminate();
 		return false;
 	}
+
+	view = glm::lookAt(glm::vec3(0, 0, -5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	projection = glm::perspective(glm::radians(80.0f), float(SCR_WIDTH/SCR_HEIGHT), 1.0f, 400.0f);
+	model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 1, 0));
 
 	//build and compile shader program
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -117,10 +143,10 @@ bool initialize()
 	glDeleteShader(fragmentShader);
 
 	float vertices[] = {
-		1.0f, 1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,
-		-1.0f, -1.0f, 0.0f,
-		-1.0f, 1.0f, 0.0f
+		1.0f, 1.0f, -0.0f,
+		1.0f, -1.0f, -0.0f,
+		-1.0f, -1.0f, -0.0f,
+		-1.0f, 1.0f, -0.0f
 	};
 
 	unsigned int indices[] = {
@@ -161,9 +187,22 @@ void cleanup()
 void render()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glUseProgram(shaderProgram);
-		
-	glBindVertexArray(VAO);
+
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "P"), 1, GL_FALSE, &projection[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "V"), 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "M"), 1, GL_FALSE, &model[0][0]);
+
+	for(auto& particle : particles)
+	{
+		glm::vec4 color = particle.getColor();
+		glUniform4f(glGetUniformLocation(shaderProgram, "color"), color[0], color[1], color[2], color[3]);
+		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &particle.getModel()[0][0]);
+	}
+
+	//glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
 	//check and call events and swap the color buffers
